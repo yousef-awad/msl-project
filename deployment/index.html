@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSL Sign Language Recognition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #webcam {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .start-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .start-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .stop-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .stop-btn:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
+        }
+
+        .reset-btn {
+            background: #ff9800;
+            color: white;
+        }
+
+        .reset-btn:hover {
+            background: #e68900;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .status.collecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.predicting {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status.ready {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .prediction {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .prediction-main {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .confidence {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .all-predictions {
+            margin-top: 15px;
+        }
+
+        .all-predictions h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .prediction-item .name {
+            color: #333;
+        }
+
+        .prediction-item .value {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .gestures-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .gestures-info h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .gestures-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .gesture-tag {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .api-status {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .api-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .api-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Malaysian Sign Language Recognition</h1>
+        <p class="subtitle">Real-time gesture recognition using AI</p>
+
+        <div id="apiStatus" class="api-status disconnected">
+            Checking API connection...
+        </div>
+
+        <div class="video-container">
+            <video id="webcam" autoplay playsinline></video>
+        </div>
+
+        <div class="controls">
+            <button id="startBtn" class="start-btn">Start Camera</button>
+            <button id="stopBtn" class="stop-btn" disabled>Stop Camera</button>
+            <button id="resetBtn" class="reset-btn" disabled>Reset Session</button>
+        </div>
+
+        <div id="status" class="status collecting">
+            Click "Start Camera" to begin
+        </div>
+
+        <div id="prediction" class="prediction" style="display: none;">
+            <div class="prediction-main" id="gestureText">-</div>
+            <div class="confidence">
+                Confidence: <span id="confidenceText">0%</span>
+            </div>
+            <div class="confidence-bar">
+                <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+            </div>
+            <div class="all-predictions">
+                <h3>All Predictions:</h3>
+                <div id="allPredictions"></div>
+            </div>
+        </div>
+
+        <div class="gestures-info">
+            <h3>Supported Gestures:</h3>
+            <div class="gestures-list" id="gesturesList">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://zeqhx-msl-project.hf.space';
+        const SESSION_ID = 'web-session-' + Date.now();
+
+        let webcamStream = null;
+        let isProcessing = false;
+        let processInterval = null;
+
+        // DOM elements
+        const webcam = document.getElementById('webcam');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const statusDiv = document.getElementById('status');
+        const predictionDiv = document.getElementById('prediction');
+        const gestureText = document.getElementById('gestureText');
+        const confidenceText = document.getElementById('confidenceText');
+        const confidenceFill = document.getElementById('confidenceFill');
+        const allPredictions = document.getElementById('allPredictions');
+        const apiStatus = document.getElementById('apiStatus');
+        const gesturesList = document.getElementById('gesturesList');
+
+        // Check API connection
+        async function checkAPI() {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+
+                apiStatus.className = 'api-status connected';
+                apiStatus.textContent = `API Connected (Device: ${data.device})`;
+
+                // Load gestures
+                displayGestures(data.gestures);
+
+                return true;
+            } catch (error) {
+                apiStatus.className = 'api-status disconnected';
+                apiStatus.textContent = 'API Disconnected - Make sure the server is running';
+                return false;
+            }
+        }
+
+        // Display supported gestures
+        function displayGestures(gestures) {
+            gesturesList.innerHTML = gestures.map(g =>
+                `<span class="gesture-tag">${g}</span>`
+            ).join('');
+        }
+
+        // Start webcam
+        async function startWebcam() {
+            try {
+                webcamStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+                webcam.srcObject = webcamStream;
+
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                resetBtn.disabled = false;
+
+                isProcessing = true;
+                processInterval = setInterval(processFrame, 200); // Process 5 frames per second
+
+                updateStatus('collecting', 'Collecting frames...');
+            } catch (error) {
+                alert('Error accessing webcam: ' + error.message);
+            }
+        }
+
+        // Stop webcam
+        function stopWebcam() {
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(track => track.stop());
+                webcamStream = null;
+            }
+
+            if (processInterval) {
+                clearInterval(processInterval);
+                processInterval = null;
+            }
+
+            isProcessing = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            resetBtn.disabled = true;
+
+            updateStatus('collecting', 'Camera stopped');
+            predictionDiv.style.display = 'none';
+        }
+
+        // Reset session
+        async function resetSession() {
+            try {
+                await fetch(`${API_URL}/reset?session_id=${SESSION_ID}`, {
+                    method: 'POST'
+                });
+
+                updateStatus('collecting', 'Session reset - Start signing');
+                predictionDiv.style.display = 'none';
+            } catch (error) {
+                console.error('Reset error:', error);
+            }
+        }
+
+        // Process frame
+        async function processFrame() {
+            if (!isProcessing) return;
+
+            try {
+                // Capture frame from webcam
+                const canvas = document.createElement('canvas');
+                canvas.width = webcam.videoWidth;
+                canvas.height = webcam.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(webcam, 0, 0);
+
+                // Convert to base64
+                const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
+
+                // Send to API
+                const response = await fetch(`${API_URL}/predict`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        frame: base64Image,
+                        session_id: SESSION_ID
+                    })
+                });
+
+                const data = await response.json();
+                updatePrediction(data);
+            } catch (error) {
+                console.error('Processing error:', error);
+            }
+        }
+
+        // Update prediction display
+        function updatePrediction(data) {
+            if (data.gesture === 'collecting_frames') {
+                updateStatus('collecting', data.message);
+                predictionDiv.style.display = 'none';
+            } else {
+                updateStatus('predicting', data.message);
+                predictionDiv.style.display = 'block';
+
+                gestureText.textContent = data.gesture.toUpperCase();
+                confidenceText.textContent = (data.confidence * 100).toFixed(1) + '%';
+                confidenceFill.style.width = (data.confidence * 100) + '%';
+
+                // Display all predictions sorted by confidence
+                const sortedPredictions = Object.entries(data.all_predictions)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5);
+
+                allPredictions.innerHTML = sortedPredictions.map(([name, conf]) => `
+                    <div class="prediction-item">
+                        <span class="name">${name}</span>
+                        <span class="value">${(conf * 100).toFixed(1)}%</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Update status
+        function updateStatus(type, message) {
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startWebcam);
+        stopBtn.addEventListener('click', stopWebcam);
+        resetBtn.addEventListener('click', resetSession);
+
+        // Initialize
+        checkAPI();
+        setInterval(checkAPI, 5000); // Check API every 5 seconds
+    </script>
+</body>
+</html>
